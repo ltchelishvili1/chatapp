@@ -1,60 +1,102 @@
 import React, { useState } from "react";
-import { signInWithGooglePopup } from "../../utils/firebase/firebase";
+import { signInUsingEmailAndPassword } from "../../utils/firebase/firebase";
 import styled from "styled-components";
-import LoginLottie from './LoginLottie.json'
-import LottieModal from '../../components/lottieModal/LottieModal-component'
+import LoginLottie from "./LoginLottie.json";
+import LottieModal from "../../components/lottieModal/LottieModal-component";
 
-import {Form,Tittle,ErrorMessage,Label,Input, Button} from './LoginPage-styles'
+import { Form, Tittle, Button } from "./LoginPage-styles";
+
+import Input from "../../components/Input/Input-component";
+import {
+  validate,
+  VALIDATOR_EMAIL,
+  VALIDATOR_MINLENGTH,
+  VALIDATOR_REQUIRE,
+} from "../../utils/validate/validators";
+
+export const VALIDATORS = {
+  email: [VALIDATOR_EMAIL()],
+  password: [VALIDATOR_MINLENGTH(6)],
+};
 
 function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [state, setState] = useState({
+    email: {
+      value: "",
+      isValid: false,
+      isTouched: false,
+    },
+    password: {
+      value: "",
+      isValid: false,
+      isTouched: false,
+    },
+  });
 
-  const handleSubmit = (event) => {
+  const ValidateForm = () => {
+    return Object.keys(state).every(
+      (key) => state[key].isValid && state[key].isTouched
+    );
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!username || !password) {
-      setError("Please enter a username and password");
+    if (!state.email.value || !state.password.value) {
       return;
+    }
+    try {
+      await signInUsingEmailAndPassword(
+        state.email.value,
+        state.password.value
+      );
+    } catch (error) {
+      console.log("user creation error", error);
     }
   };
 
-  const handleGoogleSubmit = (event) => {
-    event.preventDefault();
-    signInWithGooglePopup();
+  const handleChange = (event) => {
+    const stateCopy = { ...state };
+    stateCopy[event.target.name].value = event.target.value;
+    stateCopy[event.target.name].isTouched = true;
+    stateCopy[event.target.name].isValid = validate(
+      event.target.value,
+      VALIDATORS[event.target.name]
+    );
+    setState(stateCopy);
   };
-
+  console.log(ValidateForm());
   return (
     <LoginPageContainer>
       <LoginFormContainer>
-        <Form className="login-form" onSubmit={handleSubmit}>
-          <Tittle className="form-title">Login</Tittle>
-          {error && <ErrorMessage className="error-message">{error}</ErrorMessage>}
-          <Label className="form-label">
-            Username:
-            <Input
-              className="form-input"
-              type="text"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-            />
-          </Label>
-          <Label className="form-label">
-            Password:
-            <Input
-              className="form-input"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </Label>
-          <Button className="form-button" type="submit">
-            Submit
-          </Button>
+        <Form onSubmit={handleSubmit}>
+          <Tittle>Login</Tittle>
+          <Input
+            text={"Email"}
+            type={"email"}
+            name="email"
+            onChange={handleChange}
+            validators={VALIDATORS.email}
+            errorText={"Please Use Email"}
+            isTouched={state.email.isTouched}
+            value={state.email.value}
+          />
+
+          <Input
+            text={"Password"}
+            type={"password"}
+            name="password"
+            onChange={handleChange}
+            validators={VALIDATORS.password}
+            errorText={"Must Contain at least 6 charachters"}
+            isTouched={state.password.isTouched}
+            value={state.password.value}
+          />
+
+          <Input type="submit" disabled={!ValidateForm()}/>
         </Form>
       </LoginFormContainer>
       <div>
-    <LottieModal animJSON={LoginLottie} />
+        <LottieModal animJSON={LoginLottie} />
       </div>
     </LoginPageContainer>
   );
@@ -77,5 +119,5 @@ export const LoginPageContainer = styled.div`
 `;
 
 export const LoginFormContainer = styled.div`
-    width: 50%;
-`
+  width: 50%;
+`;

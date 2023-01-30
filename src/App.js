@@ -4,34 +4,59 @@ import { Route, Routes, Navigate, Link, useLocation } from "react-router-dom";
 
 import LoginPage from "./routes/loginpage/LoginPage-component";
 import RegisterPage from "./routes/registerpage/RegisterPage-component";
+import {
+  auth,
+  onAuthChangedListener,
+  signOutUser,
+} from "./utils/firebase/firebase";
+import { useContext, useEffect } from "react";
+import { UserContext } from "./contexts/user-context";
 
 function App() {
   const { pathname } = useLocation();
+
+  const { currentUser, setCurrentUser } = useContext(UserContext);
+
   let routes = (
     <Routes>
       <Route exact path="/" element={<Navigate to="/login" />} />
-
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
     </Routes>
   );
+
+  useEffect(() => {
+    const unsubscribe = onAuthChangedListener((user) => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <AppContainer>
-      <Switch>
-        <CustomLink
-          isSelected={!pathname.replace("/", "").localeCompare("login")}
-          to={"/"}
-        >
-          Login
-        </CustomLink>
-        <CustomLink
-          isSelected={!pathname.replace("/", "").localeCompare("register")}
-          to={"/register"}
-        >
-          Register
-        </CustomLink>
-      </Switch>
-      <main>{routes}</main>
+      {console.log(currentUser)}
+      {currentUser ? (
+        <button onClick={() => signOutUser()}>sign out </button>
+      ) : (
+        <>
+          {" "}
+          <Switch>
+            <CustomLink
+              isSelected={!pathname.replace("/", "").localeCompare("login")}
+              to={"/"}
+            >
+              Login
+            </CustomLink>
+            <CustomLink
+              isSelected={!pathname.replace("/", "").localeCompare("register")}
+              to={"/register"}
+            >
+              Register
+            </CustomLink>
+          </Switch>
+          <main>{routes}</main>
+        </>
+      )}
     </AppContainer>
   );
 }

@@ -10,12 +10,25 @@ const Input = ({
   onChange,
   type,
   name,
-  validators = [VALIDATOR_REQUIRE],
+  validators = [VALIDATOR_REQUIRE()],
   errorText,
   isTouched,
-  disabled
+  disabled,
 }) => {
-  return (
+  return type === "file" ? (
+    <Label isImage>
+      {"Upload Image"}
+      <input
+        style={{ display: "none" }}
+        type="file"
+        onChange={onChange}
+        name={name}
+        disabled={disabled}
+        isValid={isTouched && !validate(value.name || "", validators)}
+        accept="image/png, image/jpeg"
+      />
+    </Label>
+  ) : (
     <Label className="form-label">
       {text}
       <InputCont
@@ -24,7 +37,7 @@ const Input = ({
         name={name}
         disabled={disabled}
         isValid={isTouched && !validate(value, validators)}
-        isButton = {!type.localeCompare("submit")}
+        isButton={!type.localeCompare("submit")}
       />
       {isTouched && !validate(value, validators) && (
         <ErrorMessage>

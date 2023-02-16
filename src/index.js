@@ -6,13 +6,16 @@ import reportWebVitals from "./reportWebVitals";
 
 import { BrowserRouter as Router } from "react-router-dom";
 import { UserContextProvider } from "./contexts/user-context";
+import { ChatContextProvider } from "./contexts/chat-context";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <Router>
       <UserContextProvider>
-        <App />
+        <ChatContextProvider>
+          <App />
+        </ChatContextProvider>
       </UserContextProvider>
     </Router>
   </React.StrictMode>

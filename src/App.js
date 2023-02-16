@@ -11,6 +11,7 @@ import {
 } from "./utils/firebase/firebase";
 import { useContext, useEffect } from "react";
 import { UserContext } from "./contexts/user-context";
+import ChatPage from "./routes/chatpage/chatpage-component";
 
 function App() {
   const { pathname } = useLocation();
@@ -34,9 +35,8 @@ function App() {
 
   return (
     <AppContainer>
-      {console.log(currentUser)}
       {currentUser ? (
-        <button onClick={() => signOutUser()}>sign out </button>
+        <ChatPage currentUser={currentUser} />
       ) : (
         <>
           {" "}

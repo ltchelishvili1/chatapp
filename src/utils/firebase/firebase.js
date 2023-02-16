@@ -1,6 +1,16 @@
 import { initializeApp } from "firebase/app";
 
 import {
+  getDownloadURL,
+  getStorage,
+  listAll,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
+
+import { v4 } from "uuid";
+
+import {
   getAuth,
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -8,6 +18,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updateProfile,
 } from "firebase/auth";
 
 import {
@@ -19,6 +30,8 @@ import {
   writeBatch,
   query,
   getDocs,
+  orderBy,
+  where,
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -46,25 +59,63 @@ export const signInWithGooglePopup = () => {
 
 export const db = getFirestore();
 
+export const storage = getStorage();
+
+export const UploadImage = async (image, uMail) => {
+  const imageRef = ref(storage, `images/${image.name + v4() + uMail}`);
+  const response = await uploadBytes(imageRef, image);
+  return response;
+};
+
+const fetchImgRef = ref(storage, "images/");
+
+export const getImages = async () => {
+  let imageList = [];
+  const response = await listAll(fetchImgRef);
+  const promises = response.items.map(async (item) => {
+   
+    const resp = await getDownloadURL(item);
+    imageList.push({
+      img: resp,
+      img_href: item._location.path_
+    });
+  });
+  await Promise.all(promises);
+  return imageList;
+};
+
+export const getCategoriesAndDocuments = async () => {
+  const collectionRef = collection(db, "messages");
+  const q = query(collectionRef, orderBy("timestamp"));
+  const querySnapshop = await getDocs(q);
+  const categoryMap = querySnapshop.docs.map((docSnapshot) => {
+    return docSnapshot.data();
+  }, {});
+  return categoryMap;
+};
+
 export const createUserDocumentFromAuth = async (
   userAuth,
   additionalInformation = {}
 ) => {
   if (!userAuth) return;
   const userDocRef = doc(db, "users", userAuth.uid);
+  const userChatRef = doc(db, "userChats", userAuth.uid);
   const userSnapShop = await getDoc(userDocRef);
 
   if (!userSnapShop.exists()) {
-    console.log(userAuth);
-    const { email } = userAuth;
+    const { email, uid } = userAuth;
     const createdAt = new Date();
 
     try {
       await setDoc(userDocRef, {
+        uid,
         email,
         createdAt,
         ...additionalInformation,
       });
+
+      await setDoc(userChatRef, {});
     } catch (error) {
       console.log("error creating user", error.message);
     }
@@ -72,9 +123,20 @@ export const createUserDocumentFromAuth = async (
   return userDocRef;
 };
 
-export const createAuthUserWithEmailAndPassword = async (email, password) => {
+export const createAuthUserWithEmailAndPassword = async (
+  email,
+  password,
+  displayName,
+  photoURL
+) => {
   if (!email || !password) return;
-  return await createUserWithEmailAndPassword(auth, email, password);
+
+  const response = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(auth.currentUser, {
+    displayName,
+    photoURL,
+  });
+  return response;
 };
 
 export const signInUsingEmailAndPassword = async (email, password) => {
@@ -88,4 +150,18 @@ export const signOutUser = async () => {
 
 export const onAuthChangedListener = (callback) => {
   onAuthStateChanged(auth, callback);
+};
+
+export const getUsers = async (searchWord) => {
+  const collectionRef = collection(db, "users");
+  const q = query(
+    collectionRef,
+    where("username", ">=", searchWord),
+    where("username", "<", searchWord + "z")
+  );
+  const querySnapshop = await getDocs(q);
+  const categoryMap = querySnapshop.docs.map((docSnapshot) => {
+    return docSnapshot.data();
+  }, {});
+  return categoryMap;
 };

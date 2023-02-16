@@ -4,7 +4,7 @@ import styled from "styled-components";
 import LoginLottie from "./LoginLottie.json";
 import LottieModal from "../../components/lottieModal/LottieModal-component";
 
-import { Form, Tittle, Button } from "./LoginPage-styles";
+import { Form, Tittle, Button, ErrorMessage } from "./LoginPage-styles";
 
 import Input from "../../components/Input/Input-component";
 import {
@@ -20,6 +20,8 @@ export const VALIDATORS = {
 };
 
 function LoginPage() {
+  const [error, setError] = useState("");
+
   const [state, setState] = useState({
     email: {
       value: "",
@@ -50,7 +52,9 @@ function LoginPage() {
         state.password.value
       );
     } catch (error) {
-      console.log("user creation error", error);
+      console.log("user creation error", error.code);
+      setError(error);
+      throw new Error(`something went wrong ${error}`);
     }
   };
 
@@ -63,8 +67,8 @@ function LoginPage() {
       VALIDATORS[event.target.name]
     );
     setState(stateCopy);
+    setError("");
   };
-  console.log(ValidateForm());
   return (
     <LoginPageContainer>
       <LoginFormContainer>
@@ -92,7 +96,16 @@ function LoginPage() {
             value={state.password.value}
           />
 
-          <Input type="submit" disabled={!ValidateForm()}/>
+          <Input type="submit" disabled={!ValidateForm()} />
+          {console.log(error.code)}
+          {error &&
+            (error.code.localeCompare("auth/wrong-password") === 0 ? (
+              <ErrorMessage>Wrong Password or Email</ErrorMessage>
+            ) : error.code.localeCompare("auth/user-not-found") === 0 ? (
+              <ErrorMessage>User not found</ErrorMessage>
+            ) : (
+              <ErrorMessage>Please try again later</ErrorMessage>
+            ))}
         </Form>
       </LoginFormContainer>
       <div>

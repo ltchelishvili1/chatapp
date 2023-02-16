@@ -7,18 +7,21 @@ import {
   RegisterPageContainer,
   StyledForm,
   StyledTittle,
+  UploadImageCont,
 } from "./RegisterPage-styles";
 import LottieModal from "../../components/lottieModal/LottieModal-component";
 import Input from "../../components/Input/Input-component";
 import {
   createUserDocumentFromAuth,
   createAuthUserWithEmailAndPassword,
+  UploadImage,
 } from "../../utils/firebase/firebase";
 import {
   validate,
   VALIDATOR_EMAIL,
   VALIDATOR_MINLENGTH,
   VALIDATOR_REPEATPASSWORD,
+  VALIDATOR_REQUIRE,
 } from "../../utils/validate/validators";
 
 const RegisterPage = () => {
@@ -43,6 +46,11 @@ const RegisterPage = () => {
       isValid: false,
       isTouched: false,
     },
+    image: {
+      value: "",
+      isValid: true,
+      isTouched: true,
+    },
   });
 
   const VALIDATORS = {
@@ -58,12 +66,19 @@ const RegisterPage = () => {
     stateCopy[event.target.name].isTouched = true;
     stateCopy[event.target.name].isValid =
       event.target.name.localeCompare("repeatPassword") === 0
-        ? validate(
-            event.target.value,
-            [VALIDATOR_REPEATPASSWORD(state.password)]
-          )
+        ? validate(event.target.value, [
+            VALIDATOR_REPEATPASSWORD(state.password),
+          ])
         : validate(event.target.value, VALIDATORS[event.target.name]);
     setState(stateCopy);
+  };
+
+  const handleImage = async (event) => {
+    try {
+      await UploadImage(event.target.files[0],state.email.value);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   const ValidateForm = () => {
@@ -73,7 +88,7 @@ const RegisterPage = () => {
   };
 
   const handleSubmit = async (event) => {
-    const { email, username, password, repeatPassword } = state;
+    const { email, username, password, repeatPassword, image } = state;
 
     event.preventDefault();
     if (password.value != repeatPassword.value) {
@@ -83,8 +98,11 @@ const RegisterPage = () => {
     try {
       const { user } = await createAuthUserWithEmailAndPassword(
         email.value,
-        password.value
+        password.value,
+        username.value,
+       //photourl
       );
+
       await createUserDocumentFromAuth(user, {
         username: username.value,
         password: password.value,
@@ -146,6 +164,22 @@ const RegisterPage = () => {
             isTouched={state.repeatPassword.isTouched}
             value={state.repeatPassword.value}
           />
+
+          <UploadImageCont>
+            <Input
+              text={"Choose image"}
+              type={"file"}
+              name="image"
+              onChange={handleImage}
+              isTouched={state.image.isTouched}
+              value={state.image.value}
+              validators={[VALIDATOR_REQUIRE()]}
+            />
+            {state.image.value && (
+              <img src={URL.createObjectURL(state.image.value)} alt="img" />
+            )}
+          </UploadImageCont>
+
           <Input type="submit" disabled={!ValidateForm()} />
         </StyledForm>
       </RegisterFormContainer>

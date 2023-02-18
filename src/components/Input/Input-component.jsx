@@ -14,10 +14,11 @@ const Input = ({
   errorText,
   isTouched,
   disabled,
+  styles
 }) => {
   return type === "file" ? (
-    <Label isImage>
-      {"Upload Image"}
+    <Label isImage style={styles}>
+      {text}
       <input
         style={{ display: "none" }}
         type="file"

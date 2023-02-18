@@ -1,20 +1,32 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import styled, { css } from "styled-components";
+import { ChatContext } from "../../contexts/chat-context";
 import { UserContext } from "../../contexts/user-context";
 
 import InputMess from "../../routes/chatpage/input";
 
-import Img from "../../routes/chatpage/ZrTU3VK.jpeg";
-
 const Messages = ({ data, messages }) => {
+  const myRef = useRef(null);
+
+  const { dispatch } = useContext(ChatContext);
+
+  useEffect(() => {
+    if (myRef.current) myRef.current.scrollTop = myRef.current.scrollHeight;
+  });
+
+  const setDisplayImage = (img) => {
+    dispatch({ type: "DISPLAY_IMAGE", payload: img });
+  };
+
   const { currentUser } = useContext(UserContext);
-  return (
+
+  return data.user.username ? (
     <MessagesCont>
       <AuthedUser>
         {data.user.username && data.user.username.toUpperCase()}
       </AuthedUser>
       {currentUser && (
-        <MessagesList>
+        <MessagesList ref={myRef}>
           {messages.map((m, index) => (
             <div>
               <UserName isReceived={m.senderId !== currentUser.uid}>
@@ -29,7 +41,22 @@ const Messages = ({ data, messages }) => {
                 )}
               </UserName>
               <Text isReceived={m.senderId !== currentUser.uid}>
-                <TextP>{m.text}</TextP>
+                <div>
+                  {m.img && (
+                    <>
+                      <MesImage
+                        src={m.img}
+                        onClick={() => setDisplayImage(m.img)}
+                        alt="IMG"
+                      />
+                    </>
+                  )}
+                  {m.text && (
+                    <TextP isReceived={m.senderId !== currentUser.uid}>
+                      {m.text}
+                    </TextP>
+                  )}
+                </div>
               </Text>
             </div>
           ))}
@@ -39,10 +66,19 @@ const Messages = ({ data, messages }) => {
         <InputMess />
       </InputCont>
     </MessagesCont>
+  ) : (
+    <NoUser>
+      <p>No User Selected</p>
+    </NoUser>
   );
 };
 
 export default Messages;
+
+export const MesImage = styled.img`
+  border-radius: 10px;
+  cursor: pointer;
+`;
 
 export const Image = styled.img`
   width: 30px;
@@ -57,8 +93,14 @@ export const UserNameText = styled.p`
 
 export const TextP = styled.p`
   max-width: 300px;
-
   overflow-wrap: break-word;
+  display: flex;
+  justify-content: flex-end;
+  ${({ isReceived }) =>
+    isReceived &&
+    css`
+      justify-content: flex-start;
+    `};
 `;
 
 export const Text = styled.div`
@@ -84,6 +126,11 @@ export const Text = styled.div`
         #4d4d4d 100%
       );
     `};
+
+  img {
+    width: 100px;
+    height: 100px;
+  }
 `;
 
 export const UserName = styled(Text)`
@@ -139,4 +186,17 @@ export const InputCont = styled.div`
 
 export const MesCont = styled.div`
   overflow: scroll;
+`;
+
+export const NoUser = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  p {
+    color: white;
+    padding: 1rem;
+    border: 1px solid #3d3d3d;
+    background-color: #3d3d3d;
+  }
 `;

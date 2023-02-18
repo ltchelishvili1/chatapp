@@ -1,6 +1,4 @@
 import {
-  addDoc,
-  collection,
   doc,
   getDoc,
   onSnapshot,
@@ -15,8 +13,6 @@ import { ChatContext } from "../../contexts/chat-context";
 import { UserContext } from "../../contexts/user-context";
 import {
   db,
-  getCategoriesAndDocuments,
-  auth,
   signOutUser,
   getUsers,
   getImages,
@@ -24,7 +20,7 @@ import {
 import { ChatContainer } from "./chatpage-styles";
 import InputMess from "./input";
 
-import logo from "./ZrTU3VK.jpeg";
+import noUser from "../../assets/nouser.jpg";
 
 const ChatPage = () => {
   const { currentUser } = useContext(UserContext);
@@ -32,47 +28,69 @@ const ChatPage = () => {
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
   const [images, setImages] = useState([]);
+  const [search, setSearch] = useState("");
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    const unSub = onSnapshot(doc(db, "chats", data.chatId), (doc) => {
-      doc.exists() && setMessages(doc.data().messages);
+    dispatch({ type: "ISLOADING" });
+    const unSub = onSnapshot(doc(db, "chats", data.chatId), async (doc) => {
+      try {
+        if (doc.exists()) {
+          const data = await doc.data();
+          setMessages(data.messages);
+          dispatch({ type: "ISLOADED" });
+        }
+      } catch (error) {
+        console.error("Error getting messages:", error);
+        dispatch({ type: "ISLOADED" });
+      }
     });
 
     return () => {
       unSub();
     };
-  }, [data.chatId]);
-  useEffect(() => {
-    const getChats = () => {
-      const unsub = onSnapshot(doc(db, "userChats", currentUser.uid), (doc) => {
-        setChats(doc.data());
-      });
+  }, [db, data.chatId, onSnapshot]);
 
-      return () => {
-        unsub();
-      };
+  useEffect(() => {
+    dispatch({ type: "ISLOADING" });
+    const getChats = async () => {
+      try {
+        const doc = await getDoc(doc(db, "userChats", currentUser.uid));
+        if (doc.exists()) {
+          const data = await doc.data();
+          setChats(data);
+          dispatch({ type: "ISLOADED" });
+        }
+      } catch (error) {
+        console.error("Error getting chats:", error);
+        dispatch({ type: "ISLOADED" });
+      }
     };
 
     currentUser.uid && getChats();
-  }, [currentUser.uid]);
-
-  const [search, setSearch] = useState("");
-
-  const [users, setUsers] = useState([]);
+  }, [db, currentUser.uid, getDoc, onSnapshot]);
 
   useEffect(() => {
+    dispatch({ type: "ISLOADING" });
     const fetchUsers = async () => {
-      const response = await getUsers(search);
-      setUsers(response);
+      try {
+        const response = await getUsers(search);
+        setUsers(response);
+        dispatch({ type: "ISLOADED" });
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        dispatch({ type: "ISLOADED" });
+      }
     };
     fetchUsers();
-  }, [search]);
+  }, [getUsers, search]);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
   };
 
   const handleSelect = async (user) => {
+    dispatch({ type: "ISLOADING" });
     const combinedId =
       currentUser.uid > user.uid
         ? currentUser.uid + user.uid
@@ -103,16 +121,15 @@ const ChatPage = () => {
       }
     } catch (error) {
       console.log(error);
+      dispatch({ type: "ISLOADED" });
     }
 
     handleUserSelect(user);
+    dispatch({ type: "ISLOADED" });
   };
 
   const handleUserSelect = (u) => {
     dispatch({ type: "CHANGE_USER", payload: u });
-    {
-      console.log(data);
-    }
   };
 
   const SelectImage = (em) => {
@@ -120,14 +137,18 @@ const ChatPage = () => {
       image.img_href.includes(em ? em : currentUser.email)
     )[0];
   };
-
   useEffect(() => {
     const fetchImages = async () => {
-      setImages(await getImages());
+      try {
+        const images = await getImages();
+        setImages(images);
+      } catch (error) {
+        console.error("Error fetching images:", error);
+      }
     };
     fetchImages();
   }, []);
-  console.log(SelectImage());
+
   return (
     <>
       <button onClick={signOutUser}>Log out</button>
@@ -136,7 +157,10 @@ const ChatPage = () => {
           <Form>
             <UserName>
               <p>{currentUser?.displayName}</p>
-              {SelectImage() && <Image src={SelectImage().img} alt="logo" />}
+              <Image
+                src={SelectImage() ? SelectImage().img : noUser}
+                alt="logo"
+              />
             </UserName>
             <Input
               type={"search"}
@@ -151,13 +175,25 @@ const ChatPage = () => {
               return (
                 <UserContainer onClick={async () => await handleSelect(user)}>
                   <p>{user.username}</p>
-                {SelectImage(user.email) &&  <Image src={SelectImage(user.email).img} alt="logo" />}
+                  <Image
+                    src={
+                      SelectImage(user.email)
+                        ? SelectImage(user.email).img
+                        : noUser
+                    }
+                    alt="logo"
+                  />
                 </UserContainer>
               );
             })}
           </UsersContainer>
         </UserSide>
-        <Messages SelectImage= {SelectImage} data={data} messages={messages} currentUser={currentUser} />
+        <Messages
+          SelectImage={SelectImage}
+          data={data}
+          messages={messages}
+          currentUser={currentUser}
+        />
       </ChatContainer>
     </>
   );
@@ -187,7 +223,26 @@ export const UsersContainer = styled.div`
   flex-direction: column;
   width: 100%;
   height: 70%;
+  max-height: 363px;
   background: #aba0a02d;
+  overflow-y: scroll;
+  border-bottom: 3px solid #3d3d3d;
+  border-radius: 10px;
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #aba0a02d;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #aba0a02d;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
 `;
 export const Image = styled.img`
   width: 50px;
@@ -202,13 +257,16 @@ export const UserContainer = styled.div`
   align-items: center;
   border: 3px solid #3d3d3d;
   border-top: none;
-
   &:nth-child(1) {
     border: 3px solid #3d3d3d;
   }
 
   &:hover {
     background: #3d3d3d;
+  }
+
+  p {
+    width: 70px;
   }
 `;
 

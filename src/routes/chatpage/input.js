@@ -12,6 +12,9 @@ import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { UserContext } from "../../contexts/user-context";
 import { ChatContext } from "../../contexts/chat-context";
 import styled from "styled-components";
+import Input from "../../components/Input/Input-component";
+
+import { BsFillImageFill } from "react-icons/bs";
 
 const InputMess = () => {
   const [text, setText] = useState("");
@@ -23,15 +26,23 @@ const InputMess = () => {
   const handleSend = async () => {
     if (img) {
       const storageRef = ref(storage, uuid());
-
       const uploadTask = uploadBytesResumable(storageRef, img);
-
       uploadTask.on(
-        (error) => {
-          //TODO:Handle Error
+        "state_changed",
+        (snapshot) => {
+          // Handle progress
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log(`Upload is ${progress}% done`);
         },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+        (error) => {
+          console.log(error);
+          // Handle error
+        },
+        async () => {
+          // Upload complete, get download URL and update chat document
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             await updateDoc(doc(db, "chats", data.chatId), {
               messages: arrayUnion({
                 id: uuid(),
@@ -41,10 +52,15 @@ const InputMess = () => {
                 img: downloadURL,
               }),
             });
-          });
+            console.log("Chat document updated with image URL");
+          } catch (error) {
+            console.log(error);
+            // Handle error
+          }
         }
       );
     } else {
+      if (!text) return;
       await updateDoc(doc(db, "chats", data.chatId), {
         messages: arrayUnion({
           id: uuid(),
@@ -72,6 +88,7 @@ const InputMess = () => {
     setText("");
     setImg(null);
   };
+
   return (
     <MainCont>
       <InputStyled
@@ -81,6 +98,18 @@ const InputMess = () => {
         value={text}
       />
       <FormCont>
+        <Input
+          text={<BsFillImageFill size={25} />}
+          type={"file"}
+          name="image"
+          styles={{
+            padding: "0",
+            background: "transparent",
+            transform: "translateY(-3px)",
+          }}
+          onChange={(event) => setImg(event.target.files[0])}
+        />
+        {img && <img src={URL.createObjectURL(img)} />}
         <button onClick={handleSend}>Send</button>
       </FormCont>
     </MainCont>
@@ -90,18 +119,26 @@ const InputMess = () => {
 export default InputMess;
 
 export const FormCont = styled.div`
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
   position: absolute;
   right: 10px;
 
-button{
-  min-width: 50px;
-  min-height: 30px;
-  background: #aba0a02d;
-  border-radius: 6px;
-  border: none;
-  
-}
+  button {
+    min-width: 50px;
+    min-height: 30px;
+    background: #aba0a02d;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
 
+  img {
+    width: 25px;
+    height: 25px;
+  }
 `;
 
 export const MainCont = styled.div`

@@ -8,17 +8,37 @@ export const ChatContextProvider = ({ children }) => {
   const INITIAL_STATE = {
     chatId: "null",
     user: {},
+    displayImage: "",
+    isLoading: false,
   };
 
   const chatReducer = (state, action) => {
     switch (action.type) {
       case "CHANGE_USER":
         return {
+          ...state,
           user: action.payload,
           chatId:
             currentUser.uid > action.payload.uid
               ? currentUser.uid + action.payload.uid
               : action.payload.uid + currentUser.uid,
+        };
+      case "DISPLAY_IMAGE":
+        return {
+          ...state,
+          displayImage: action.payload,
+        };
+
+      case "ISLOADING":
+        return {
+          ...state,
+          isLoading: true,
+        };
+
+      case "ISLOADED":
+        return {
+          ...state,
+          isLoading: false,
         };
 
       default:

@@ -9,15 +9,20 @@ import {
   onAuthChangedListener,
   signOutUser,
 } from "./utils/firebase/firebase";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { UserContext } from "./contexts/user-context";
 import ChatPage from "./routes/chatpage/chatpage-component";
+import DisplayImage from "./components/displayImage/displayimage.component";
+import { ChatContext } from "./contexts/chat-context";
+import LoadSpinner from "./components/spinner/LoadSpinner";
 
 function App() {
   const { pathname } = useLocation();
 
   const { currentUser, setCurrentUser } = useContext(UserContext);
 
+  const { data } = useContext(ChatContext);
+  console.log(data.isLoading);
   let routes = (
     <Routes>
       <Route exact path="/" element={<Navigate to="/login" />} />
@@ -34,30 +39,40 @@ function App() {
   }, []);
 
   return (
-    <AppContainer>
-      {currentUser ? (
-        <ChatPage currentUser={currentUser} />
-      ) : (
-        <>
-          {" "}
-          <Switch>
-            <CustomLink
-              isSelected={!pathname.replace("/", "").localeCompare("login")}
-              to={"/"}
-            >
-              Login
-            </CustomLink>
-            <CustomLink
-              isSelected={!pathname.replace("/", "").localeCompare("register")}
-              to={"/register"}
-            >
-              Register
-            </CustomLink>
-          </Switch>
-          <main>{routes}</main>
-        </>
+    <>
+      {data.isLoading && <LoadSpinner asOverlay />}
+      <AppContainer>
+        {currentUser ? (
+          <ChatPage />
+        ) : (
+          <>
+            {" "}
+            <Switch>
+              <CustomLink
+                isSelected={!pathname.replace("/", "").localeCompare("login")}
+                to={"/"}
+              >
+                Login
+              </CustomLink>
+              <CustomLink
+                isSelected={
+                  !pathname.replace("/", "").localeCompare("register")
+                }
+                to={"/register"}
+              >
+                Register
+              </CustomLink>
+            </Switch>
+            <main>{routes}</main>
+          </>
+        )}
+      </AppContainer>
+      {data.displayImage && (
+        <DisplayImage>
+          {data.displayImage && <img src={data.displayImage} />}
+        </DisplayImage>
       )}
-    </AppContainer>
+    </>
   );
 }
 

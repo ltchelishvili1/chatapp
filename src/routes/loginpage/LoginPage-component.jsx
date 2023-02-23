@@ -74,7 +74,7 @@ function LoginPage() {
     <LoginPageContainer>
       <Welcome>
         <p>
-          Not registered yet? feel free to join <Link to = '/register'>us</Link>
+          Not registered yet? feel free to join <Link to="/register">us</Link>
         </p>
       </Welcome>
       <LoginFormContainer>
@@ -124,14 +124,15 @@ function LoginPage() {
 export default LoginPage;
 
 export const Welcome = styled.div`
+  display: none;
   @media (max-width: 600px) {
     height: 100px;
     display: flex;
     justify-content: center;
     align-items: center;
   }
-  p{
-    a{
+  p {
+    a {
       text-decoration: underline;
       color: #2e2eff;
     }

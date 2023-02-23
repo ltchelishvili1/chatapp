@@ -13,6 +13,7 @@ import {
   VALIDATOR_MINLENGTH,
   VALIDATOR_REQUIRE,
 } from "../../utils/validate/validators";
+import { Link } from "react-router-dom";
 
 export const VALIDATORS = {
   email: [VALIDATOR_EMAIL()],
@@ -71,6 +72,11 @@ function LoginPage() {
   };
   return (
     <LoginPageContainer>
+      <Welcome>
+        <p>
+          Not registered yet? feel free to join <Link to = '/register'>us</Link>
+        </p>
+      </Welcome>
       <LoginFormContainer>
         <Form onSubmit={handleSubmit}>
           <Tittle>Login</Tittle>
@@ -117,6 +123,21 @@ function LoginPage() {
 
 export default LoginPage;
 
+export const Welcome = styled.div`
+  @media (max-width: 600px) {
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  p{
+    a{
+      text-decoration: underline;
+      color: #2e2eff;
+    }
+  }
+`;
+
 export const LoginPageContainer = styled.div`
   display: flex;
   justify-content: space-evenly;
@@ -129,6 +150,18 @@ export const LoginPageContainer = styled.div`
   height: 70vh;
   background: #4d4d4d;
   border-radius: 10px;
+  @media (max-width: 600px) {
+    position: initial;
+    transform: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column-reverse;
+    zoom: 1.3;
+    &:first-child {
+      margin-top: 1rem;
+      width: 100%;
+    }
+  }
 `;
 
 export const LoginFormContainer = styled.div`

@@ -87,6 +87,7 @@ const InputMess = () => {
 
     setText("");
     setImg(null);
+    
   };
 
   return (
@@ -125,7 +126,7 @@ export const FormCont = styled.div`
   align-items: center;
   position: absolute;
   right: 10px;
-
+  z-index: 1;
   button {
     min-width: 50px;
     min-height: 30px;
@@ -146,6 +147,8 @@ export const MainCont = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 10;
+  
 `;
 
 export const InputStyled = styled.input`
@@ -160,4 +163,12 @@ export const InputStyled = styled.input`
   align-items: center;
   border: 3px solid #f0f0f0;
   border-top: none;
+  border-right: none;
+  z-index: 1;
+  background: #4d4d4d;
+  @media (max-width: 600px) {
+    border: none;
+    
+  }
+
 `;

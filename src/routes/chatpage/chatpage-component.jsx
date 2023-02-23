@@ -7,7 +7,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import React, { useState, useEffect, useContext } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import Messages from "../../components/messages/Messages";
 import { ChatContext } from "../../contexts/chat-context";
 import { UserContext } from "../../contexts/user-context";
@@ -22,6 +22,10 @@ import InputMess from "./input";
 
 import noUser from "../../assets/nouser.jpg";
 
+import { createLastMessages } from "./functions/functions";
+
+import { BsSearch } from "react-icons/bs";
+
 const ChatPage = () => {
   const { currentUser } = useContext(UserContext);
   const { data, dispatch } = useContext(ChatContext);
@@ -30,67 +34,60 @@ const ChatPage = () => {
   const [images, setImages] = useState([]);
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState([]);
+  const [lasMessage, setLastMessage] = useState({});
+
+  const [displayMessages, setDisplayMessages] = useState(false);
 
   useEffect(() => {
     dispatch({ type: "ISLOADING" });
-    const unSub = onSnapshot(doc(db, "chats", data.chatId), async (doc) => {
-      try {
-        if (doc.exists()) {
-          const data = await doc.data();
-          setMessages(data.messages);
+
+    const messageUnsub = onSnapshot(
+      doc(db, "chats", data.chatId),
+      async (doc) => {
+        try {
+          if (doc.exists()) {
+            const data = await doc.data();
+            setMessages(data.messages);
+          }
+        } catch (error) {
+          console.error("Error getting messages:", error);
+        } finally {
           dispatch({ type: "ISLOADED" });
         }
-      } catch (error) {
-        console.error("Error getting messages:", error);
-        dispatch({ type: "ISLOADED" });
       }
-    });
+    );
 
-    return () => {
-      unSub();
-    };
-  }, [db, data.chatId, onSnapshot]);
-
-  useEffect(() => {
-    dispatch({ type: "ISLOADING" });
-    const getChats = async () => {
+    const getUsersAndChats = async () => {
       try {
-        const doc = await getDoc(doc(db, "userChats", currentUser.uid));
-        if (doc.exists()) {
-          const data = await doc.data();
+        const chatDoc = doc(db, "userChats", currentUser.uid);
+        const docSnap = await getDoc(chatDoc);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
           setChats(data);
-          dispatch({ type: "ISLOADED" });
         }
-      } catch (error) {
-        console.error("Error getting chats:", error);
-        dispatch({ type: "ISLOADED" });
-      }
-    };
 
-    currentUser.uid && getChats();
-  }, [db, currentUser.uid, getDoc, onSnapshot]);
-
-  useEffect(() => {
-    dispatch({ type: "ISLOADING" });
-    const fetchUsers = async () => {
-      try {
         const response = await getUsers(search);
         setUsers(response);
-        dispatch({ type: "ISLOADED" });
       } catch (error) {
-        console.error("Error fetching users:", error);
+        console.error("Error fetching data:", error);
+      } finally {
         dispatch({ type: "ISLOADED" });
       }
     };
-    fetchUsers();
-  }, [getUsers, search]);
+
+    getUsersAndChats();
+
+    return () => {
+      messageUnsub();
+    };
+  }, [db, data.chatId, getUsers, currentUser.uid, getDoc, onSnapshot, search]);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
   };
 
   const handleSelect = async (user) => {
-    dispatch({ type: "ISLOADING" });
     const combinedId =
       currentUser.uid > user.uid
         ? currentUser.uid + user.uid
@@ -125,11 +122,11 @@ const ChatPage = () => {
     }
 
     handleUserSelect(user);
-    dispatch({ type: "ISLOADED" });
   };
 
   const handleUserSelect = (u) => {
     dispatch({ type: "CHANGE_USER", payload: u });
+    setDisplayMessages(true);
   };
 
   const SelectImage = (em) => {
@@ -137,6 +134,7 @@ const ChatPage = () => {
       image.img_href.includes(em ? em : currentUser.email)
     )[0];
   };
+
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -147,53 +145,71 @@ const ChatPage = () => {
       }
     };
     fetchImages();
-  }, []);
+    createLastMessages(users, chats, setLastMessage);
+  }, [users, chats, messages]);
 
   return (
     <>
-      <button onClick={signOutUser}>Log out</button>
       <ChatContainer>
-        <UserSide>
-          <Form>
-            <UserName>
-              <p>{currentUser?.displayName}</p>
-              <Image
-                src={SelectImage() ? SelectImage().img : noUser}
-                alt="logo"
-              />
-            </UserName>
-            <Input
-              type={"search"}
-              name="email"
-              value={search}
-              onChange={handleSearch}
-            />
-          </Form>
-          <UsersContainer>
-            {users.map((user) => {
-              if (user.username === currentUser.displayName) return;
-              return (
-                <UserContainer onClick={async () => await handleSelect(user)}>
-                  <p>{user.username}</p>
-                  <Image
-                    src={
-                      SelectImage(user.email)
-                        ? SelectImage(user.email).img
-                        : noUser
-                    }
-                    alt="logo"
-                  />
-                </UserContainer>
-              );
-            })}
-          </UsersContainer>
-        </UserSide>
-        <Messages
-          SelectImage={SelectImage}
-          data={data}
-          messages={messages}
-          currentUser={currentUser}
-        />
+        {
+          <UserSide isMobile={displayMessages}>
+            <Form>
+           
+              <UserName>
+              <LogOut onClick={signOutUser}>Log out</LogOut>
+                <p>{currentUser?.displayName}</p>
+                <Image
+                  src={SelectImage() ? SelectImage().img : noUser}
+                  alt="logo"
+                />
+              </UserName>
+              
+              <InputCont>
+              
+                <Input
+                  type={"search"}
+                  name="email"
+                  value={search}
+                  onChange={handleSearch}
+                />
+                <SearchIcon />
+                
+              </InputCont>
+           
+            </Form>
+            <UsersContainer>
+              {users.map((user, index) => {
+                if (user.username === currentUser.displayName) return;
+                if (index > 10) return;
+                return (
+                  <UserContainer onClick={async () => await handleSelect(user)}>
+                    <div>
+                      <p>{user.username}</p>
+                      <span>{lasMessage[user.username]}</span>
+                    </div>
+                    <Image
+                      src={
+                        SelectImage(user.email)
+                          ? SelectImage(user.email).img
+                          : noUser
+                      }
+                      alt="logo"
+                    />
+                  </UserContainer>
+                );
+              })}
+            </UsersContainer>
+          </UserSide>
+        }
+        {displayMessages && (
+          <Messages
+            SelectImage={SelectImage}
+            data={data}
+            messages={messages}
+            currentUser={currentUser}
+            setDisplayMessages={setDisplayMessages}
+          />
+        )}
       </ChatContainer>
     </>
   );
@@ -201,15 +217,57 @@ const ChatPage = () => {
 
 export default ChatPage;
 
+export const InputCont = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+  position: relative;
+`;
+
+export const SearchIcon = styled(BsSearch)`
+  position: absolute;
+  right: 10px;
+  opacity: 0.6;
+`;
+
+export const LogOut = styled.button`
+  background-color: transparent;
+  border: none;
+  color: #ffffff3a;
+  transition: transform .2s;
+  cursor: pointer;
+  text-transform: uppercase;
+  z-index: 10;
+  &:hover{
+    transform: scale(1.1)
+  }
+
+  @media (max-width: 600px) {
+
+  }
+
+`;
+
 export const UserSide = styled.div`
   width: 100%;
   height: 100%;
+  display: grid;
+  grid-template-rows: 20% 80%;
+  overflow: hidden;
+
+  ${({ isMobile }) =>
+    isMobile &&
+    css`
+      @media (max-width: 600px) {
+        display: none;
+      }
+    `};
 `;
 
 export const Form = styled.form`
   display: grid;
   place-items: center;
-  height: 30%;
 `;
 
 export const UserName = styled.div`
@@ -222,14 +280,18 @@ export const UsersContainer = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 70%;
-  max-height: 363px;
-  background: #aba0a02d;
+
   overflow-y: scroll;
   border-bottom: 3px solid #3d3d3d;
   border-radius: 10px;
   ::-webkit-scrollbar {
     width: 5px;
+  }
+
+  @media (max-width: 600px) {
+    ::-webkit-scrollbar {
+      width: 0px;
+    }
   }
 
   ::-webkit-scrollbar-track {
@@ -242,6 +304,13 @@ export const UsersContainer = styled.div`
 
   ::-webkit-scrollbar-thumb:hover {
     background: #555;
+  }
+
+  div {
+    span {
+      opacity: 0.6;
+      font-size: 12px;
+    }
   }
 `;
 export const Image = styled.img`
@@ -271,9 +340,9 @@ export const UserContainer = styled.div`
 `;
 
 export const Input = styled.input`
-  width: 70%;
+  width: 100%;
   height: 30px;
   background: transparent;
-  border: 1px solid #f0f0f0;
+  border: 1px solid #a9a9a9;
   border-radius: 3px;
 `;

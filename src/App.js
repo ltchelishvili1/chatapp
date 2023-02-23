@@ -22,7 +22,19 @@ function App() {
   const { currentUser, setCurrentUser } = useContext(UserContext);
 
   const { data } = useContext(ChatContext);
-  console.log(data.isLoading);
+console.log( 10 
+  %
+   2 
+  +
+   25 
+  /
+   5 
+  *
+   7 
+  %
+   4 
+  +
+   3 )
   let routes = (
     <Routes>
       <Route exact path="/" element={<Navigate to="/login" />} />
@@ -87,6 +99,14 @@ export const AppContainer = styled.div`
   height: 90vh;
   background: #f0f0f0;
   border-radius: 10px;
+  @media (max-width: 600px) {
+    width: 100%;
+    position: initial;
+    transform: none;
+    display: block;
+
+    background: #3d3d3d;
+  }
 `;
 
 export const Switch = styled.div`

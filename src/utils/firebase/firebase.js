@@ -156,12 +156,13 @@ export const getUsers = async (searchWord) => {
   const collectionRef = collection(db, "users");
   const q = query(
     collectionRef,
-    where("username", ">=", searchWord),
-    where("username", "<", searchWord + "z")
+    orderBy("username"),
   );
-  const querySnapshop = await getDocs(q);
-  const categoryMap = querySnapshop.docs.map((docSnapshot) => {
-    return docSnapshot.data();
-  }, {});
+  const querySnapshot = await getDocs(q);
+  const categoryMap = querySnapshot.docs
+    .filter((docSnapshot) =>
+      docSnapshot.data().username.toLowerCase().startsWith(searchWord.toLowerCase())
+    )
+    .map((docSnapshot) => docSnapshot.data());
   return categoryMap;
 };

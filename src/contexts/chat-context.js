@@ -14,6 +14,8 @@ export const ChatContextProvider = ({ children }) => {
 
   const chatReducer = (state, action) => {
     switch (action.type) {
+      case "CLEAN":
+        return null;
       case "CHANGE_USER":
         return {
           ...state,
